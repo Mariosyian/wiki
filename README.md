@@ -10,3 +10,9 @@ This app will be intended primarily for CLI usage with web-template integration 
 npm install
 node index.js
 ```
+
+# Structure
+The structure behind this application is the following database relation schema:
+* A User can have many Wikis/Modules
+* A Wiki/Module can have many Sections/Chapters
+* A Section/Chapter can have many Notes

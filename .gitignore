@@ -1,2 +1,5 @@
 # Node modules directory
 node_modules
+
+# Sensitive data e.g. Authentication Tokens
+static
