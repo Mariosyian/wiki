@@ -107,6 +107,12 @@ curl -X PUT --data newTitle=NewNoteTitle http://localhost:8080/Wiki/Section/Note
 
 // Updates the content of the note with title 'Note' to 'Lorem Ipsum' if it exists, displays a message if not found.
 curl -X PUT --data "content=Lorem Ipsum" http://localhost:8080/Wiki/Section/Note
+
+/**
+ * Updates the content of the note with title 'Note' to 'Lorem Ipsum'
+ * and its title to 'NewnoteTitle' if it exists, displays a message if not found.
+ */
+curl -X PUT --data "newTitle=NewNoteTitle&content=Lorem Ipsum" http://localhost:8080/Wiki/Section/Note
 ```
 
 ## To delete entities
@@ -117,7 +123,7 @@ http://localhost:8080/:wikiTitle | none
 http://localhost:8080/:wikiTitle/:sectionTitle | none
 http://localhost:8080/:wikiTitle/:sectionTitle/:noteTitle | none
 ```
-// Deletes all wikis and related entities. This basically, clears the entire database.
+// Deletes all wikis and related entities. This clears the entire database.
 curl -X DELETE http://localhost:8080/
 
 // Deletes the wiki with title 'Wiki' and related entities if it exists, displays a message if not found.
