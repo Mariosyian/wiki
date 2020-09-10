@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
+mongoose.set('useFindAndModify', false);
 
 const HOST = 'http://localhost';
 const PORT = '8080';
@@ -37,21 +38,6 @@ const wikiModel = mongoose.model("Wiki", wikiSchema);
 
 app.get('/', function(req, res) {
   res.write('\nWelcome to WiKi!\n');
-
-  const wiki = new wikiModel({
-    title: 'TestWiki',
-    sections: [{
-      title: 'TestSection',
-      notes: [{
-        title: 'TestNote',
-        content: 'TestContent'
-      }]
-    },
-    {
-      title: 'TestSection2'
-    }]
-  });
-  wiki.save();
 
   wikiModel.find({}, function(err, wikis) {
     if (err) {
@@ -277,7 +263,6 @@ app.put('/:wikiTitle/:sectionTitle', function(req, res) {
       res.send('\nNo such wiki exists');
     }
   });
-
 });
 
 app.delete('/:wikiTitle/:sectionTitle', function(req, res) {
@@ -290,7 +275,7 @@ app.delete('/:wikiTitle/:sectionTitle', function(req, res) {
     } else if (wiki) {
       const sectionTitle = req.params.sectionTitle;
 
-      wikiModel.findOneAndUpdate({ title: wikiTitle }, { $pull: { sections: { title: sectionTitle } } },
+      wikiModel.findOneAndUpdate({ 'sections.title': sectionTitle }, { $pull: { sections: { title: sectionTitle } } },
       function(err, section) {
         if (err) {
           res.send('\nAn unkown error has occured');
@@ -332,9 +317,9 @@ app.get('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
                 const note = section.notes.find((n) => { return n.title === noteTitle; });
 
                 if (note.content) {
-                  res.write('\n' + note.title + '\n' + note.content);
+                  res.write('\n' + note.title + '\n\n' + note.content);
                 } else {
-                  res.write('\n' + note.title + '\n[ No content to show ]');
+                  res.write('\n' + note.title + '\n\n[ No content to show ]');
                 }
               } else {
                 res.write('\nNo such note exists');
@@ -371,20 +356,16 @@ app.post('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
           } else if (section) {
               const noteTitle = req.params.noteTitle;
   
-              wikiModel.findOne({ 'sections.notes.title': noteTitle }, function(err, n) {
+              wikiModel.findOneAndUpdate({ 'sections.notes.title': noteTitle }, function(err, n) {
                 if (err) {
                   res.write('\nAn unkown error has occured');
                   console.error(err);
                 } else if (n) {
                   res.write('\nNote already exists');
                 } else {
-                  // TODO: Push new note
-                  const newNote = {
-                    title: noteTitle
-                  };
 
                   wikiModel.findOneAndUpdate({ 'sections.title': sectionTitle },
-                  { $push: { 'sections.notes': newNote } },
+                  { $push: { 'sections.$.notes': { title: noteTitle } } },
                   function(err) {
                     if (err) {
                       res.write('\nAn unkown error has occured');
@@ -392,11 +373,10 @@ app.post('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
                     } else {
                       res.write('\nCreated new note: ' + noteTitle)
                     }
+
                     res.send();
                   });
                 }
-  
-                res.send();
               });
           } else {
             res.send('\nNo such section exists');
@@ -410,71 +390,48 @@ app.post('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
 });
 
 app.put('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
-
   if (req.body.content == null && req.body.newTitle == null) {
     res.send('Please refer to the documentation for API usage');
   } else {
-    wikiModel.findOne({ title: req.params.wikiTitle }, function(err, wiki) {
+    wikiModel.findOne({ title: req.params.wikiTitle }, function (err, wiki) {
       if (err) {
         res.send('\nAn unkown error has occured');
         console.error(err);
       } else if (wiki) {
-        sectionModel.findOne({ title: req.params.sectionTitle }, function(err, section) {
+        wikiModel.findOne({ 'sections.title': req.params.sectionTitle }, function (err, section) {
           if (err) {
             res.send('\nAn unkown error has occured');
             console.error(err);
           } else if (section) {
-            const currentNoteTitle = req.params.noteTitle;
+            const noteTitle = req.params.noteTitle;
+            let newNote = null;
 
-            if (req.body.content && req.body.newTitle == null) {
-              const newContent = req.body.content;
-
-              noteModel.findOneAndUpdate({ title: currentNoteTitle }, { $set: { content: newContent } },
-              function(err, note) {
-                if (err) {
-                  res.send('\nAn unkown error has occured');
-                  console.error(err);
-                } else if (note) {
-                  res.send('\nUpdated ' + currentNoteTitle + "'s content");
-                } else {
-                  res.send('\nNo such note exists');
-                }
-              });
-            } else if (req.body.content == null && req.body.newTitle) {
-              const newNoteTitle = req.body.newTitle;
-
-              noteModel.findOneAndUpdate({ title: currentNoteTitle }, { $set: { title: newNoteTitle } },
-              function(err, note) {
-                if (err) {
-                  res.send('\nAn unkown error has occured');
-                  console.error(err);
-                } else if (note) {
-                  res.send('\nUpdated note ' + currentNoteTitle + ' to ' + newNoteTitle);
-                } else {
-                  res.send('\nNo such note exists');
-                }
-              });
-            } else if (req.body.content && req.body.newTitle) {
-              const newNoteTitle = req.body.newTitle;
-              const newContent = req.body.content;
-
-              noteModel.findOneAndUpdate({ title: currentNoteTitle },
-              { $set: { title: newNoteTitle, content: newContent } },
-              function(err, note) {
-                if (err) {
-                  res.send('\nAn unkown error has occured');
-                  console.error(err);
-                } else if (note) {
-                  res.send('\nUpdated note ' + currentNoteTitle + ' to ' + newNoteTitle + ' and its content.');
-                } else {
-                  res.send('\nNo such note exists');
-                }
-              });
+            if (req.body.content == null) {
+              newNote = {
+                title: noteTitle
+              };
+            } else {
+              newNote = {
+                title: noteTitle,
+                content: req.body.content
+              };
             }
+
+            wikiModel.findOneAndUpdate({ 'sections.notes.title': noteTitle }, { $set: { 'sections.notes.$': newNote } },
+            function (err, note) {
+              if (err) {
+                res.send('\nAn unkown error has occured');
+                console.error(err);
+              } else if (note) {
+                res.send('\nNote ' + noteTitle + ' has been updated');
+              } else {
+                res.send('\nNo such note exists');
+              }
+            });
           } else {
             res.send('\nNo such section exists');
           }
-        });
+        })
       } else {
         res.send('\nNo such wiki exists');
       }
@@ -483,16 +440,36 @@ app.put('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
 });
 
 app.delete('/:wikiTitle/:sectionTitle/:noteTitle', function(req, res) {
-  const noteTitle = req.params.noteTitle;
-
-  noteModel.findOneAndDelete({ title: noteTitle }, function(err, note) {
+  wikiModel.findOne({ title: req.params.wikiTitle }, function (err, wiki) {
     if (err) {
       res.send('\nAn unkown error has occured');
       console.error(err);
-    } else if (note) {
-      res.send('\nNote ' + noteTitle + ' was succesfully deleted');
+    } else if (wiki) {
+      wikiModel.findOne({ 'sections.title': req.params.sectionTitle }, function (err, section) {
+        if (err) {
+          res.send('\nAn unkown error has occured');
+          console.error(err);
+        } else if (section) {
+          const noteTitle = req.params.noteTitle;
+
+          wikiModel.findOneAndUpdate({ 'sections.notes.$.title': noteTitle },
+          { $pull: { 'sections.notes.title': noteTitle } },
+          function (err, note) {
+            if (err) {
+              res.send('\nAn unkown error has occured');
+              console.error(err);
+            } else if (note) {
+              res.send('\nNote ' + noteTitle + ' was succesfully deleted');
+            } else {
+              res.send('\nNo such note exists');
+            }
+          });
+        } else {
+          res.send('\nNo such section exists');
+        }
+      })
     } else {
-      res.send('\nNo such note exists');
+      res.send('\nNo such wiki exists');
     }
   });
 });
