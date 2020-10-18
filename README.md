@@ -1,14 +1,21 @@
-# Wiki
+# About
 
 Notes organiser in the form of REST API.
 From this project I will try to gain a deeper understanding for RESTful APIs.
 This app will be intended primarily for CLI usage with web-template integration for expansion.
 
+# Requirements (Alphabetically):
+* Body-Parser -- Version Used: v1.19.0
+* Chai -- Version Used: v4.2.0
+* Express -- Version Used: v4.17.1
+* Mocha -- Version Used: v8.1.3
+* Mongoose -- Version Used: v5.10.3
+
 # Usage
 * Navigate to the root directory of the project
 ```
 npm install
-node index.js
+node index.jsUp
 ```
 
 # Structure
